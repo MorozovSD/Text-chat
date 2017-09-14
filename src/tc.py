@@ -23,9 +23,10 @@ def recive_thread():
         try:
             message = sock.recv(128)
             history.append(message.decode(encoding='UTF-8'))
-            print_hist()
-        except:
-            print("Ха-ха, ошибка!")
+            #print_hist()
+            print(message.decode(encoding='UTF-8'))
+        except Exception as e:
+            print(e)
             is_alive = False   
             
 def send_thread(nick):
@@ -36,8 +37,8 @@ def send_thread(nick):
             if str == nick + ": ":
                 print_hist()
                 continue
-            elif str.startswith(nick + ": exit"):
-                str = "Пользователь " + nick + " покинул чат."
+            elif str.startswith(nick + ":exit"):
+                str = "::exit"
                 sock.sendto(bytes(str.encode('utf8')), (HOST, PORT))
                 is_alive = False
             else:
@@ -52,9 +53,8 @@ if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
     nick = input("Select nickname:")
     os.system('cls' if os.name == 'nt' else 'clear')
-    
-    str = "Пользователь " + nick + " присоеденился к чату"
-    sock.sendto(bytes(str.encode('utf8')), (HOST, PORT))
+    #str = "Пользователь " + nick + " присоеденился к чату"
+    sock.sendto(bytes("".encode('utf8')), (HOST, PORT))
     
     recive_th = Thread(target=recive_thread).start()
     send_th = Thread(target=send_thread, args = [nick]).start()

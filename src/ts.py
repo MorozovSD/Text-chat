@@ -1,42 +1,59 @@
 import socketserver
+import sys
 
 class MyUDPHandler(socketserver.BaseRequestHandler):
-    client_base  = {}
-    name_base = {}
-
-    def is_new(self, socket, client_address, name):
-        if client_address not in self.client_base.keys():
-            if name not in self.name_base.keys():
-                return True
-            else:
-                str = "Error: имя" + name + "занято!"
-                socket.sendto(bytes(str.encode('utf8')), client)
-                return False
-        else:
-            return False
-            
-    def welcome(self, socket, client, name):
-        str = "Добро пожаловать в чат, " + name
-        socket.sendto(bytes(str.encode('utf8')), client)
-        for cl in self.client_base:
-            str = name + "присоеденился к чату"
-            socket.sendto(bytes(str.encode('utf8')), cl)
-        self.client_base[client] = name
-        self.name_base[name] = ""
+    client_base  = {}    
+    client_names = {}
     
+    def mas_send(self, socket, s):
+        for client in self.client_base:
+            socket.sendto(bytes(s.encode('utf8')), client)
+            
     def handle(self):
         data = self.request[0].decode(encoding='UTF-8').strip()
         socket = self.request[1]
-        name = data[:data.find(":")]
-        if self.is_new(socket, self.client_address, name):
-            self.welcome(socket, self.client_address, name)
-        print("{} wrote:".format(self.client_address[0]))
+        
+        print("{} wrote:".format(self.client_address))
         print(data)
-        for client in self.client_base:
-            socket.sendto(bytes(data.encode('utf8')), client)
+        
+        if data.startswith("::new"):
+            name = data.split()[1]
+            if name in self.client_names.keys():
+                socket.sendto(bytes("::no".encode('utf8')), self.client_address)
+                return
+            else:
+                self.client_names[name] = name
+                socket.sendto(bytes("::ok".encode('utf8')), self.client_address)
+                self.client_base[self.client_address] = ""
+                s = name + " присоеденился к чату!"
+                self.mas_send(socket, s)
+                return
+           
+        if data.startswith("::exit"):
+            name = data.split()[1]
+            print(self.client_names)
+            print(self.client_base)
+            s = name + " вышел и чата!"
+            self.mas_send(socket, s)
+            self.client_names.pop(name, None)
+            self.client_base.pop(self.client_address)
+            return
+        
+        if data.startswith("::members"):
+            s = "В сети: \n"
+            for name in self.client_names.keys():
+                s += name + "\n"
+            print(s)
+            socket.sendto(bytes(s[:-1].encode('utf8')), self.client_address)
+            return
+            
+        self.mas_send(socket, data)
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9090
+    if len(sys.argv) == 3:
+        HOST, PORT = sys.argv[1], sys.argv[2]
+    else:
+        HOST, PORT = "localhost", 9090
     with socketserver.UDPServer((HOST, PORT), MyUDPHandler) as server:
-        server.socket
+        print("Мой адрес: ", str((server.server_address)))
         server.serve_forever()

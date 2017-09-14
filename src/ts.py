@@ -1,14 +1,24 @@
 import socketserver
 import sys
-
 class MyUDPHandler(socketserver.BaseRequestHandler):
+    # Словарь адресов пользователей, взаимодействующих с сервером
+    # по этим адресам происходит рассылка сообщений чата
     client_base  = {}    
+    # Словарь имен пользователей, взаимодействующих с сервером
     client_names = {}
     
+    # Отправление сообщения s, пользователям из client_base
     def mas_send(self, socket, s):
         for client in self.client_base:
             socket.sendto(bytes(s.encode('utf8')), client)
-            
+    
+    # В зависимости от принимаемых данных различаются 4 типа сообщений:
+    # ::new name - проверка есть ли имя name в client_names, если имени нет, 
+    #   оповещение о появлении нового пользователя name по всем адресам client_base
+    # ::exit name - исключение name из client_names и отправка 
+    #   оповещения об этом всем адресам client_base
+    # ::members - оправка client_names запросившему пользователсю
+    # name: "Text" - рассылка данного сообщения по всем адресам client_base
     def handle(self):
         data = self.request[0].decode(encoding='UTF-8').strip()
         socket = self.request[1]
@@ -49,6 +59,9 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
             
         self.mas_send(socket, data)
 
+# Считывание адреса и порта сервера из входных параметров, иначе 
+# значения берутся по умолчанию.
+# TODO добавить проверку корректности ввода        
 if __name__ == "__main__":
     if len(sys.argv) == 3:
         HOST, PORT = sys.argv[1], sys.argv[2]

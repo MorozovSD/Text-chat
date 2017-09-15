@@ -3,7 +3,8 @@ import sys
 class MyUDPHandler(socketserver.BaseRequestHandler):
     # Словарь адресов пользователей, взаимодействующих с сервером
     # по этим адресам происходит рассылка сообщений чата
-    client_base  = {}    
+    client_base  = {}   
+    
     # Словарь имен пользователей, взаимодействующих с сервером
     client_names = {}
     
@@ -12,13 +13,15 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
         for client in self.client_base:
             socket.sendto(bytes(s.encode('utf8')), client)
     
-    # В зависимости от принимаемых данных различаются 4 типа сообщений:
+    # В зависимости от принимаемых данных различаются следующие типы сообщений:
     # ::new name - проверка есть ли имя name в client_names, если имени нет, 
     #   оповещение о появлении нового пользователя name по всем адресам client_base
     # ::exit name - исключение name из client_names и отправка 
     #   оповещения об этом всем адресам client_base
     # ::members - оправка client_names запросившему пользователсю
     # name: "Text" - рассылка данного сообщения по всем адресам client_base
+    # Если приходит запрос от пользователя, что имя не было инициализоровани в системе через
+    # ::new - он отправляет сообщение ::exit. Такая ситуация возможна при перезапуске сервера
     def handle(self):
         data = self.request[0].decode(encoding='UTF-8').strip()
         socket = self.request[1]
@@ -26,9 +29,16 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
         print("{} wrote:".format(self.client_address))
         print(data)
         
+        if not data.startswith("::"):
+            name = data.split()[0][:-1]
+            if name not in self.client_names.keys():
+                self.client_names[name] = name
+                self.client_base[self.client_address] = ""
+                socket.sendto(bytes("::error_name".encode('utf8')), self.client_address)
+                
         if data.startswith("::new"):
             name = data.split()[1]
-            if name in self.client_names.keys():
+            if name in self.client_names.keys() or name.startswith("::"):
                 socket.sendto(bytes("::no".encode('utf8')), self.client_address)
                 return
             else:
@@ -38,35 +48,35 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
                 s = name + " присоеденился к чату!"
                 self.mas_send(socket, s)
                 return
-           
+                
         if data.startswith("::exit"):
             name = data.split()[1]
-            print(self.client_names)
-            print(self.client_base)
             s = name + " вышел и чата!"
             self.mas_send(socket, s)
             self.client_names.pop(name, None)
-            self.client_base.pop(self.client_address)
+            self.client_base.pop(self.client_address, None)
             return
         
         if data.startswith("::members"):
             s = "В сети: \n"
             for name in self.client_names.keys():
                 s += name + "\n"
-            print(s)
             socket.sendto(bytes(s[:-1].encode('utf8')), self.client_address)
             return
-            
+        
         self.mas_send(socket, data)
-
+          
+        
 # Считывание адреса и порта сервера из входных параметров, иначе 
-# значения берутся по умолчанию.
-# TODO добавить проверку корректности ввода        
+# значения берутся по умолчанию.       
 if __name__ == "__main__":
+
     if len(sys.argv) == 3:
         HOST, PORT = sys.argv[1], sys.argv[2]
     else:
         HOST, PORT = "localhost", 9090
     with socketserver.UDPServer((HOST, PORT), MyUDPHandler) as server:
+        server.request_queue_size = 15
         print("Мой адрес: ", str((server.server_address)))
+        print("Количество доступный подключений:", str(server.request_queue_size))
         server.serve_forever()

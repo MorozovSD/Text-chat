@@ -68,11 +68,14 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
 # Считывание адреса и порта сервера из входных параметров, иначе 
 # значения берутся по умолчанию.       
 if __name__ == "__main__":
-
-    if len(sys.argv) == 3:
-        HOST, PORT = sys.argv[1], sys.argv[2]
-    else:
-        HOST, PORT = "localhost", 9090
+    
+    try:
+        if len(sys.argv) == 3:
+            HOST, PORT = sys.argv[1], sys.argv[2]
+        else:
+            HOST, PORT = "localhost", 9090
+    except:
+        print("Ошибка ввода адреса сервера и/или порта")
     with socketserver.UDPServer((HOST, PORT), MyUDPHandler) as server:
         server.request_queue_size = 15
         print("Мой адрес: ", str((server.server_address)))

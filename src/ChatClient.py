@@ -23,8 +23,8 @@ try:
     sock = socket.socket()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM )
     sock.settimeout(1)
-except:
-    print("Ошибка ввода адреса сервера и/или порта")
+except Exception as e:
+    print(e)
     
 # Вывод в консоль PRINT_SIZE строк из истории сообщений     
 def print_hist():

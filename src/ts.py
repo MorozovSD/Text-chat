@@ -60,7 +60,7 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
         if data.startswith("::members"):
             s = "В сети: \n"
             for name in self.client_names.keys():
-                s += name + "\n"
+                s += "\t" + name + "\n"
             socket.sendto(bytes(s[:-1].encode('utf8')), self.client_address)
             return
         

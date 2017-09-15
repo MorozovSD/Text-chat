@@ -113,6 +113,9 @@ def ident():
     while True:
         try:
             nick = input("Введите имя:").strip()
+            if (nick == ""):
+                print("Не корректное имя. Попробойту нажать что-то кроме пробела и Tab'а")
+                continue
             message = "::new " + nick
             sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))
             message = sock.recv(1024).decode(encoding='UTF-8')

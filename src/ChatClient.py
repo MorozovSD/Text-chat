@@ -112,7 +112,7 @@ def ident():
     os.system('cls' if os.name == 'nt' else 'clear')
     while True:
         try:
-            nick = input("Введите имя:")
+            nick = input("Введите имя:").strip()
             message = "::new " + nick
             sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))
             message = sock.recv(1024).decode(encoding='UTF-8')

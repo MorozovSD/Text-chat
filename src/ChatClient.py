@@ -24,6 +24,7 @@ try:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM )
     sock.settimeout(1)
 except Exception as e:
+    print("Не верные аргументы, введите адрес и порт сервера")
     print(e)
     
 # Вывод в консоль PRINT_SIZE строк из истории сообщений     
@@ -88,7 +89,7 @@ def send_thread(nick):
                 is_alive = False
             elif s.startswith(nick + ": :members"):
                 mess = "::members"
-                sock.sendto(bytes(mess.encode('utf8')), (HOST, PORT))
+                sock.sendto(bytes(mess.encode('utf8')), (HOST, PORT))   
             else:
                 sock.sendto(bytes(s.encode('utf8')), (HOST, PORT))
         except (EOFError, KeyboardInterrupt):

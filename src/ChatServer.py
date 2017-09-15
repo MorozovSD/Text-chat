@@ -61,7 +61,7 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
                 s += "\t" + name + "\n"
             socket.sendto(bytes(s[:-1].encode('utf8')), self.client_address)
             return
-        
+       
         self.mas_send(socket, data)
           
         
@@ -70,14 +70,20 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
 if __name__ == "__main__":
     
     try:
+        print(sys.argv)
         if len(sys.argv) == 3:
-            HOST, PORT = sys.argv[1], sys.argv[2]
+            HOST, PORT = sys.argv[1], int(sys.argv[2])
         else:
             HOST, PORT = "localhost", 9090
+        server = socketserver.UDPServer((HOST, PORT), MyUDPHandler) 
     except:
-        print("Ошибка ввода адреса сервера и/или порта")
-    with socketserver.UDPServer((HOST, PORT), MyUDPHandler) as server:
-        server.request_queue_size = 15
-        print("Мой адрес: ", str((server.server_address)))
-        print("Количество доступный подключений:", str(server.request_queue_size))
+        print("Не верные аргументы, введите адрес и порт сервера")
+        sys.exit(1)
+    server.request_queue_size = 15
+    print("Мой адрес: ", str((server.server_address)))
+    print("Количество доступный подключений:", str(server.request_queue_size))
+    try:
         server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nЗакрытие сервера...")
+    server.server_close()

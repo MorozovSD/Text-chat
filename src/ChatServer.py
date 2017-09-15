@@ -19,7 +19,7 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
     # name: "Text" - рассылка данного сообщения по всем адресам client_base
     # Если приходит запрос от пользователя, что имя не было инициализоровани в системе через
     # ::new - он отправляет сообщение ::exit. Такая ситуация возможна при перезапуске сервера
-    def handle(self):
+    def handle(self, ):
         data = self.request[0].decode(encoding='UTF-8').strip()
         socket = self.request[1]
         
@@ -27,14 +27,18 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
         print(data)
         
         if not data.startswith("::"):
-            name = data.split()[0][:-1]
+            name = data.strip()[:data.find(":")].split()
+            name = " ".join(name)
+            print(name)
             if name not in self.client_base.values():
                 self.client_base[self.client_address] = name
                 socket.sendto(bytes("::error_name".encode('utf8')), self.client_address)
                 
         if data.startswith("::new"):
-            name = data.split()[1]
-            if name in self.client_base.values() or name.startswith("::"):
+            name = data.strip().split()[1:]
+            name = " ".join(name)
+            print(name)
+            if name in self.client_base.values() or name.find(":") != -1:
                 socket.sendto(bytes("::no".encode('utf8')), self.client_address)
                 return
             else:
@@ -63,7 +67,7 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
             return
        
         self.mas_send(socket, data)
-          
+        
         
 # Считывание адреса и порта сервера из входных параметров, иначе 
 # значения берутся по умолчанию.       
@@ -77,7 +81,7 @@ if __name__ == "__main__":
             HOST, PORT = "localhost", 9090
         server = socketserver.UDPServer((HOST, PORT), MyUDPHandler) 
     except:
-        print("Не верные аргументы, введите адрес и порт сервера")
+        print("Неверные аргументы, введите адрес и порт сервера")
         sys.exit(1)
     server.request_queue_size = 15
     print("Мой адрес: ", str((server.server_address)))

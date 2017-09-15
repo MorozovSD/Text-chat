@@ -24,7 +24,7 @@ try:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM )
     sock.settimeout(1)
 except Exception as e:
-    print("Не верные аргументы, введите адрес и порт сервера")
+    print("Неверные аргументы, введите адрес и порт сервера")
     print(e)
     
 # Вывод в консоль PRINT_SIZE строк из истории сообщений     
@@ -36,24 +36,24 @@ def print_hist():
 # История сообщений записывается в файл... Просто так
 def exit():
     global is_alive
-    mess = "::exit " + nick
-    sock.sendto(bytes(mess.encode('utf8')), (HOST, PORT))
+    message = "::exit " + nick
+    sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))
     is_alive = False
     with open("hist.txt", "w") as outf:
-        for mess in history:
-            outf.write(mess + "\n")
+        for message in history:
+            outf.write(message + "\n")
     print("Выход из программы...")
     
 # Функция работы потока по приему сообщений от сервера.
 # Принимается по 1024 символа
 # Поменять способ отображения сообщений на экран   
-def recive_thread():
+def receive_thread():
     global is_alive, nick
     while is_alive:
         try:
             message = sock.recv(1024).decode(encoding='UTF-8')
             if message.startswith("::error_name"):
-                print("Потеря данный на сервере, перезайдите")
+                print("Потеря данный на сервере данных, перезайдите")
                 is_alive = False
                 continue
             history.append(message)
@@ -62,8 +62,15 @@ def recive_thread():
         except socket.timeout as e:
             continue
         except OSError as e:
-            print("Error: Принимаемое сообщение оказалось слишком велико")
-            continue
+            if e.errno == 10040:
+                print("Error: Принимаемое сообщение оказалось слишком велико")
+                continue
+            elif e.errno == 10054:
+                print("Сервер недоступен")
+                exit()
+            else:
+                print(e)
+                exit()
         except Exception as e:
             print(e)
             exit()
@@ -79,19 +86,20 @@ def send_thread(nick):
     global is_alive
     while is_alive:
         try:
-            s = nick + ": " + input("$")
-            if s == nick + ": ":
+            command = input()
+            if command == "":
                 print_hist()
                 continue
-            elif s.startswith(nick + ": :exit"):
-                mess = "::exit " + nick
-                sock.sendto(bytes(mess.encode('utf8')), (HOST, PORT))
+            elif command == ":exit":
+                message = "::exit " + nick
+                sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))
                 is_alive = False
-            elif s.startswith(nick + ": :members"):
-                mess = "::members"
-                sock.sendto(bytes(mess.encode('utf8')), (HOST, PORT))   
+            elif command == ":members":
+                message = "::members"
+                sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))   
             else:
-                sock.sendto(bytes(s.encode('utf8')), (HOST, PORT))
+                message = nick + ": " + command
+                sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))
         except (EOFError, KeyboardInterrupt):
             exit()
         except Exception as e:
@@ -104,14 +112,17 @@ def ident():
     os.system('cls' if os.name == 'nt' else 'clear')
     while True:
         try:
-            nick = input("Select nickname:")
-            s = "::new " + nick
-            sock.sendto(bytes(s.encode('utf8')), (HOST, PORT))
+            nick = input("Введите имя:")
+            message = "::new " + nick
+            sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))
             message = sock.recv(1024).decode(encoding='UTF-8')
             if message.startswith("::ok"):
                 break
+            else:
+                print("Ваше имя занято или имеет неправильный формат")
+                print("Имя недолжно содержать \":\"")
         except socket.timeout as e:
-            print("Сервер что-то молчит... Чтож попробуем еще разок")
+            print("Сервер что-то молчит... Что ж попробуем еще разок")
             continue
         except Exception as e:
             print(e)
@@ -123,5 +134,5 @@ def ident():
 if __name__ == "__main__":
     nick = ident()
     
-    recive_th = Thread(target=recive_thread).start()
+    recive_th = Thread(target=receive_thread).start()
     send_th = Thread(target=send_thread, args = [nick]).start()

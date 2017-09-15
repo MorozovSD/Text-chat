@@ -9,7 +9,8 @@ history = []
 # Количество отображаемых строк в чате берется со знаком "-", 
 # т.к. это фактичски последние N элементов списка history
 PRINT_SIZE = -50
-
+MESSAGE_SIZE = 1024
+NICK_SIZE = 16
 # Флаг отвечающий за работу потоков приема и передачи сообщений
 is_alive = True
 
@@ -45,15 +46,15 @@ def exit():
     print("Выход из программы...")
     
 # Функция работы потока по приему сообщений от сервера.
-# Принимается по 1024 символа
+# Принимается по MESSAGE_SIZE символа
 # Поменять способ отображения сообщений на экран   
 def receive_thread():
     global is_alive, nick
     while is_alive:
         try:
-            message = sock.recv(1024).decode(encoding='UTF-8')
+            message = sock.recv(MESSAGE_SIZE).decode(encoding='UTF-8')
             if message.startswith("::error_name"):
-                print("Потеря данный на сервере данных, перезайдите")
+                print("Потеря данных на сервере, перезайдите")
                 is_alive = False
                 continue
             history.append(message)
@@ -112,20 +113,25 @@ def ident():
     os.system('cls' if os.name == 'nt' else 'clear')
     while True:
         try:
+            print("Ваше имя должно содержать значимые символы, исключая \':\'")
+            print("Размер длинна не должен превышать ", NICK_SIZE, "символов")
             nick = input("Введите имя:").strip()
             if (nick == ""):
-                print("Не корректное имя. Попробойту нажать что-то кроме пробела и Tab'а")
+                print("Некорректное имя. Попробойту нажать что-то кроме пробела и Tab'а")
+                continue
+            if (len(nick) > NICK_SIZE):
+                print("Слишком длинное имя. Выберите более короткое имя.")
                 continue
             message = "::new " + nick
             sock.sendto(bytes(message.encode('utf8')), (HOST, PORT))
-            message = sock.recv(1024).decode(encoding='UTF-8')
+            message = sock.recv(MESSAGE_SIZE).decode(encoding='UTF-8')
             if message.startswith("::ok"):
                 break
             else:
                 print("Ваше имя занято или имеет неправильный формат")
                 print("Имя недолжно содержать \":\"")
         except socket.timeout as e:
-            print("Сервер что-то молчит... Что ж попробуем еще разок")
+            print("Сервер что-то молчит... Повторная попытка авторизации")
             continue
         except Exception as e:
             print(e)
